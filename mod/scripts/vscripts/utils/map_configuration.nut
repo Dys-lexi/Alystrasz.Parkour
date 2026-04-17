@@ -105,7 +105,7 @@ void function reloadmapw(){
 
 bool function reloadmap(entity player, array<string> args) {
     delaythread (5) reloadmapw()
-    Chat_ServerBroadcast("reloading map in 5s")
+    Chat_ServerBroadcast("reloading map in 5s",false)
     return true
 }
 void function loadsavespots(){
@@ -201,12 +201,12 @@ void function saveplayerspot(entity player,bool deletee = false){
 
 bool function savespotwrapper(entity player, array<string> args){
     saveplayerspot(player)
-    Chat_ServerPrivateMessage(player,"saving this spot")
+    Chat_ServerPrivateMessage(player,"saving this spot",false,false)
     return true
 }
 bool function resetplayerspotwrapper(entity player, array<string> args){
     saveplayerspot(player,true)
-    Chat_ServerPrivateMessage(,player"removing save spot")
+    Chat_ServerPrivateMessage(player,"removing save spot",false,false)
     
     return true
 }
@@ -260,7 +260,7 @@ array <string> function routematchstuff(string playername){ //returns all player
 void function waitabit(entity player, bool waitmore = false){
     WaitFrame()
     if (waitmore){
-        Chat_ServerPrivateMessage(player,"[38;5;203mcannot find route, do `[38;5;219m!cr routename[38;5;203m` below are routes:")
+        Chat_ServerPrivateMessage(player,"[38;5;203mcannot find route, do `[38;5;219m!cr routename[38;5;203m` below are routes:",false,false)
     }
     table <string,int> routecounts
     foreach (key, value in selectedrouteforplayers){
@@ -279,7 +279,7 @@ void function waitabit(entity player, bool waitmore = false){
         else{
             constructer += " [38;5;249m("+"none" + " playing)"
         }
-        Chat_ServerPrivateMessage(player,constructer)
+        Chat_ServerPrivateMessage(player,constructer,false,false)
     }
 }
 
