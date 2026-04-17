@@ -2,47 +2,49 @@ global function PK_ApplyPerks
 global function PK_ForcePlayerLoadout
 global function PK_ForcePlayerWeapon
 
-global struct PK_Perks {
+global struct PK_perks {
 	string ability = ""
 	string weapon = ""
 	string grenade = ""
 	int kit = -1 // numerical value of the passive ability
 	bool floorIsLava = false
 }
-global PK_Perks PK_perks
+global table<string,PK_perks> PK_perksstupid
 
 array<string> abilities = [ "mp_ability_cloak", "mp_weapon_grenade_sonar", "mp_ability_grapple", "mp_ability_heal", "mp_weapon_deployable_cover", "mp_ability_shifter", "mp_ability_holopilot" ]
 array<string> grenades = [ "mp_weapon_frag_grenade", "mp_weapon_grenade_emp", "mp_weapon_thermite_grenade", "mp_weapon_grenade_gravity", "mp_weapon_grenade_electric_smoke", "mp_weapon_satchel" ]
 
 
-void function PK_ApplyPerks( table tPerks ) {
+void function PK_ApplyPerks(string routeName, table tPerks ) {
+	PK_perks dwqdwq
+	PK_perksstupid[routeName] <- dwqdwq
 	if ("weapon" in tPerks) {
 		string weapon = expect string(tPerks["weapon"])
 		print(format("Applying weapon perk (%s)", weapon))
-		PK_perks.weapon = weapon
+		PK_perksstupid[routeName].weapon = weapon
 	}
 
 	if ("ability" in tPerks) {
 		string ability = expect string(tPerks["ability"])
 		print(format("Applying ability perk (%s)", ability))
-		PK_perks.ability = ability
+		PK_perksstupid[routeName].ability = ability
 	}
 
 	if ("grenade" in tPerks) {
 		string grenade = expect string(tPerks["grenade"])
 		print(format("Applying grenade perk (%s)", grenade))
-		PK_perks.grenade = grenade
+		PK_perksstupid[routeName].grenade = grenade
 	}
 
 	if ("kit" in tPerks) {
 		string kit = expect string(tPerks["kit"])
 		print(format("Applying kit perk (%s)", kit))
-		PK_perks.kit = kit.tointeger()
+		PK_perksstupid[routeName].kit = kit.tointeger()
 	}
 
 	if ("floor_is_lava" in tPerks) {
 		print("Applying floor_is_lava perk")
-		PK_perks.floorIsLava = true
+		PK_perksstupid[routeName].floorIsLava = true
 
 		// In original "floor is lava" riff (located in
 		// `Northstar.CustomServers/mod/scripts/vscripts/gamemodes/_riff_floor_is_lava.nut`),
@@ -60,6 +62,7 @@ void function PK_ApplyPerks( table tPerks ) {
 
 		RiffFloorIsLava_Init()
 	}
+	
 }
 
 // Imported from Northstar.CustomServers/mod/scripts/vscripts/gamemodes/_riff_floor_is_lava.nut
@@ -80,12 +83,14 @@ void function InitLavaFogController( entity fogController )
  * This gives player predefined grenade and ability.
  **/
 void function PK_ForcePlayerLoadout(entity player) {
+	PK_ForcePlayerWeapon(player)
+	// discordlogsendmessage("owo")
 	if (IsAlive(player) && player != null)
 	{
 		// Fill up main weapon ammo
 		foreach ( entity weapon in player.GetMainWeapons() )
 		{
-			if ( weapon.GetWeaponClassName() != PK_perks.weapon )
+			if ( weapon.GetWeaponClassName() != PK_perksstupid[selectedrouteforplayers[player]].weapon )
 				continue
 			weapon.SetWeaponPrimaryClipCount(weapon.GetWeaponPrimaryClipCountMax())
 		}
@@ -95,22 +100,22 @@ void function PK_ForcePlayerLoadout(entity player) {
 		bool grenadeGiven = false;
 
 		foreach ( int index, entity weapon in player.GetOffhandWeapons() ) {
-			if (PK_perks.ability != "" && abilityGiven == false && abilities.find(weapon.GetWeaponClassName()) != -1) {
+			if (PK_perksstupid[selectedrouteforplayers[player]].ability != "" && abilityGiven == false && abilities.find(weapon.GetWeaponClassName()) != -1) {
 				player.TakeWeaponNow( weapon.GetWeaponClassName() )
-				player.GiveOffhandWeapon( PK_perks.ability, index )
+				player.GiveOffhandWeapon( PK_perksstupid[selectedrouteforplayers[player]].ability, index )
 				abilityGiven = true
 			}
 
-			else if (PK_perks.grenade != "" && grenadeGiven == false && grenades.find(weapon.GetWeaponClassName()) != -1) {
+			else if (PK_perksstupid[selectedrouteforplayers[player]].grenade != "" && grenadeGiven == false && grenades.find(weapon.GetWeaponClassName()) != -1) {
 				player.TakeWeaponNow( weapon.GetWeaponClassName() )
-				player.GiveOffhandWeapon( PK_perks.grenade, index )
+				player.GiveOffhandWeapon( PK_perksstupid[selectedrouteforplayers[player]].grenade, index )
 				grenadeGiven = true
 			}
 		}
 
 		// Kit
-		if (PK_perks.kit != -1) {
-			GivePassive (player, PK_perks.kit)
+		if (PK_perksstupid[selectedrouteforplayers[player]].kit != -1) {
+			GivePassive (player, PK_perksstupid[selectedrouteforplayers[player]].kit)
 		}
 	}
 }
@@ -119,13 +124,13 @@ void function PK_ForcePlayerWeapon(entity player) {
 	if (IsAlive(player) && player != null)
 	{
 		// Weapon switch (removes all weapons and give one perk weapon)
-		if (PK_perks.weapon != "") {
+		if (PK_perksstupid[selectedrouteforplayers[player]].weapon != "") {
 			foreach ( int index, entity weapon in player.GetMainWeapons() ) {
 				player.TakeWeaponNow( weapon.GetWeaponClassName() )
 			}
 		}
 
 		// Give weapon after taking them all
-		player.GiveWeapon( PK_perks.weapon, [] )
+		player.GiveWeapon( PK_perksstupid[selectedrouteforplayers[player]].weapon, [] )
 	}
 }

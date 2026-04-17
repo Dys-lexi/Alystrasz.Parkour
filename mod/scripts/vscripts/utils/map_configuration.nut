@@ -1,6 +1,7 @@
 global function PK_InitializeMapConfiguration
 global function DebugPK_GetEntity
-
+global function pullsavespot
+global function returnroutes
 /**
  * This global object holds parkour API information needed to interact
  * with it, namely its address, secret token, current event and current
@@ -17,6 +18,10 @@ global struct PK_Credentials {
     string secret
     array<string> maps = []
 }
+
+
+global table<string, table<string, table<string, vector> > > pk_savespots
+
 global PK_Credentials PK_credentials
 
 /**
@@ -34,9 +39,24 @@ global struct PK_MapConfiguration {
     string worldLeaderboardStr
     string routeNameStr
 }
-global PK_MapConfiguration PK_mapConfiguration
+// global PK_MapConfiguration PK_MapConfiguration
 
-struct MapEntity {
+global struct PK_MapConfigurationb {
+    bool finishedFetchingData = false
+    entity startIndicator
+    string startLineStr
+    string finishLineStr
+    string localLeaderboardStr
+    string worldLeaderboardStr
+    string routeNameStr
+}
+
+global table<entity,string> selectedrouteforplayers
+
+global table<string,PK_MapConfigurationb> routes
+global bool fetchedall = false
+
+global struct MapEntity {
     string model_name
     float scale
     vector coordinates
@@ -49,7 +69,7 @@ struct MapEntity {
  * Those are used to spawn related entities after map configuration fetching
  * is done.
  **/
-struct {
+global struct RouteData {
     vector startMins
     vector startMaxs
     vector endMins
@@ -57,7 +77,9 @@ struct {
     array ziplines
     array<MapEntity> entities
     entity lastSpawnedProp
-} file;
+}
+
+global table<string, RouteData> whyoneartharecheckpointsnotstoredwiththerestorsomethingandthenthatwiththemap
 
 /**
  * This object stores information needed to spawn a helping robot on the map.
@@ -77,8 +99,146 @@ struct {
  *
  * Map configuration can be fetched from two sources: Parkour API or local file.
  **/
+void function reloadmapw(){
+    ServerCommand("reload")
+}
+
+bool function reloadmap(entity player, array<string> args) {
+    delaythread (5) reloadmapw()
+    discordlogsendmessage("reloading map in 5s")
+    return true
+}
+void function loadsavespots(){
+    if (!NSDoesFileExist("savespots.json")){
+        return
+    }
+    void functionref( string ) onFileLoad = void function ( string result )
+    {
+        table data = DecodeJSON(result)
+
+        // Check if current map has save data
+        if (!(GetMapName() in data)) {
+            return
+        }
+
+        table mapRoutes = expect table(data[GetMapName()])
+
+        foreach (routeName, routeData in mapRoutes) {
+            string route = expect string(routeName)
+            array players = expect array(routeData)
+
+            if (!(route in pk_savespots)) {
+                pk_savespots[route] <- {}
+            }
+
+            foreach (player in players) {
+                table playerdata = expect table(player)
+                string uid = expect string(playerdata["uid"])
+                array posArray = expect array(playerdata["pos"])
+                array angleArray = expect array(playerdata["angle"])
+
+                pk_savespots[route][uid] <- {
+                    pos = PK_ArrayToFloatVector(posArray),
+                    angle = PK_ArrayToFloatVector(angleArray)
+                }
+            }
+        }
+    }
+    
+    NSLoadFile("savespots.json", onFileLoad)
+}
+void function saveplayerspot(entity player,bool deletee = false){
+    string selectedRoute = selectedrouteforplayers[player]
+
+    // Initialize route table if it doesn't exist
+    if (!(selectedRoute in pk_savespots)) {
+        pk_savespots[selectedRoute] <- {}
+    }
+
+    pk_savespots[selectedRoute][player.GetUID()] <- {pos=<player.GetOrigin().x,player.GetOrigin().y,player.GetOrigin().z + 5>,angle=player.CameraAngles()}
+    if (deletee){
+        delete pk_savespots[selectedRoute][player.GetUID()]
+    }
+
+    void functionref( string ) onFileLoad = void function ( string result )
+    {
+        table data
+
+        // Handle empty or non-existent file
+        if (result == "") {
+            data = {}
+        } else {
+            data = DecodeJSON(result)
+        }
+
+        // Create route-based structure for current map
+        table routesData = {}
+
+        foreach (routeName, routePlayers in pk_savespots) {
+            array playerArray = []
+            foreach (uid, spotData in routePlayers) {
+                table playerSpot = {
+                    uid = uid,
+                    pos = [spotData["pos"].x, spotData["pos"].y, spotData["pos"].z],
+                    angle = [spotData["angle"].x, spotData["angle"].y, spotData["angle"].z]
+                }
+                playerArray.append(playerSpot)
+            }
+            routesData[routeName] <- playerArray
+        }
+
+        data[GetMapName()] <- routesData
+        NSSaveFile("savespots.json",EncodeJSON(data))
+    }
+
+    if (!NSDoesFileExist("savespots.json")) {
+        NSSaveFile("savespots.json", "{}")
+    }
+
+    NSLoadFile("savespots.json", onFileLoad)
+
+}
+
+bool function savespotwrapper(entity player, array<string> args){
+    saveplayerspot(player)
+    discordlogsendmessage("saving this spot",4,[player.GetUID()])
+    return true
+}
+bool function resetplayerspotwrapper(entity player, array<string> args){
+    saveplayerspot(player,true)
+    discordlogsendmessage("removing save spot",4,[player.GetUID()])
+    
+    return true
+}
+
+table <string, vector> function pullsavespot(entity player){
+    string selectedRoute = selectedrouteforplayers[player]
+
+    if (selectedRoute in pk_savespots && player.GetUID() in pk_savespots[selectedRoute]){
+        return pk_savespots[selectedRoute][player.GetUID()]
+    }
+
+    return {pos=PK_startOrigin[selectedRoute],angle=PK_startAngles[selectedRoute]}
+}
+
+bool function changeroute(entity player, array<string> args){
+    selectedrouteforplayers[player] = args[0]
+    player.Signal("Iwanttochangearoute")
+    OnPlayerReset(player)
+    
+    return true
+}
+
 void function PK_InitializeMapConfiguration()
 {
+    RegisterSignal("Iwanttochangearoute")
+    
+    RegisterSignal( "Pkloadedconfig" )
+    thread loadsavespots()
+    KcommandArr.append(new_KCommandStruct(["changeroute","cr"], false,  changeroute, 0, "change your route"))
+    KcommandArr.append(new_KCommandStruct(["reload"], false,  reloadmap, 0, "reload the current map"))
+    KcommandArr.append(new_KCommandStruct(["reset","re"], false,  resetplayerspotwrapper, 0, "reset your custom save spot"))
+    KcommandArr.append(new_KCommandStruct(["save","sa"], false,  savespotwrapper, 0, "save a custom save spot"))
     // Load map configuration either from local file or distant API
     array<string> realmaps
     bool useLocal = GetConVarInt("parkour_use_local_config") == 1
@@ -89,7 +249,7 @@ void function PK_InitializeMapConfiguration()
         
         foreach (map in maps){
             
-            addsomemoremaps(expect string(map))
+            // addsomemoremaps(expect string(map))
             printt("WOAG MAP"+expect string(map))
             realmaps.append(expect string(map)+"")
         }
@@ -107,15 +267,18 @@ void function PK_InitializeMapConfiguration()
         print("Loading map configuration from API.")
         thread InitializeMapConfigurationFromAPI()
     }
-    while(PK_mapConfiguration.finishedFetchingData == false) {
-        WaitFrame()
-    }
+    // while(PK_mapConfiguration.finishedFetchingData == false) {
+    //     WaitFrame()
+    // }
+    GetEnt( "worldspawn" ).WaitSignal("Pkloadedconfig")
 
     // Set up world
-	PK_SpawnCheckpoints( file.startMins, file.startMaxs, file.endMins, file.endMaxs )
-    SpawnZiplines( file.ziplines )
-    SpawnEntities()
-    PK_SpawnAmbientMarvin( robot.origin, robot.angles, robot.talkableRadius, robot.animation )
+	// PK_SpawnCheckpoints( file.startMins, file.startMaxs, file.endMins, file.endMaxs )
+    // foreach (routeName, routeData in whyoneartharecheckpointsnotstoredwiththerestorsomethingandthenthatwiththemap) {
+    //     SpawnZiplines( routeData.ziplines )
+    // }
+    // SpawnEntities()
+    // PK_SpawnAmbientMarvin( robot.origin, robot.angles, robot.talkableRadius, robot.animation )
 
     // Start map vote thread
     PK_MapVote()
@@ -131,7 +294,22 @@ void function PK_InitializeMapConfiguration()
     }*/
 }
 
+array<string> routesw
 
+array<string> function returnroutes(){
+    return routesw
+}
+
+void function LoadParkourMapConfigurationnotstupid(table data){
+    foreach (routename,value in data){
+        string routeNameStr = expect string(routename)
+        routes[routeNameStr] <- LoadParkourMapConfigurationnotstupidw(expect table(value), routeNameStr)
+        routesw.append(routeNameStr)
+
+    }
+    fetchedall = true
+    GetEnt( "worldspawn" ).Signal("Pkloadedconfig")
+}
 /**
  * This method loads all needed information from input table into memory, to spawn
  * current level's layout (start/finish lines, leaderboards, checkpoints, ziplines
@@ -141,51 +319,59 @@ void function PK_InitializeMapConfiguration()
  * coordinates) to prepare sending them to clients, since clients need those
  * coordinates to spawn world RUIs.
  **/
-void function LoadParkourMapConfiguration(table data)
+PK_MapConfigurationb function LoadParkourMapConfigurationnotstupidw(table data, string routeName)
 {
-    try {
-        // Checkpoints
+    PK_MapConfigurationb PK_mapConfiguratione
+    // try {
+
+        PK_checkpoints[routeName] <- []
+        RouteData routeData
+        routeData.ziplines = []
+        routeData.entities = []
+        whyoneartharecheckpointsnotstoredwiththerestorsomethingandthenthatwiththemap[routeName] <- routeData
+
+
         array fCheckpoints = expect array(data["checkpoints"])
         foreach( checkpoint in fCheckpoints ) {
-            PK_checkpoints.push( PK_ArrayToFloatVector(expect array(checkpoint)) )
+            PK_checkpoints[routeName].push( PK_ArrayToFloatVector(expect array(checkpoint)) )
         }
         table startData = expect table(data["start"])
         vector start = PK_ArrayToFloatVector( expect array(startData["origin"]) )
-        PK_startOrigin = start
-        PK_checkpoints.insert( 0, start )
+        PK_startOrigin[routeName] <- start
+        PK_checkpoints[routeName].insert( 0, start )
         vector angles = PK_ArrayToIntVector( expect array(startData["angles"]) )
-        PK_startAngles = angles
+        PK_startAngles[routeName] <- angles
         table endData = expect table(data["end"])
         vector end = PK_ArrayToFloatVector( expect array(endData["origin"]) )
-        PK_checkpoints.append( end )
+        PK_checkpoints[routeName].append( end )
 
         // Start/finish lines
         // Start
         table startLineData = expect table(data["start_line"])
         ParkourLine startLine = PK_BuildParkourLine(startLineData)
-        file.startMins = startLine.triggerMins
-        file.startMaxs = startLine.triggerMaxs
+        whyoneartharecheckpointsnotstoredwiththerestorsomethingandthenthatwiththemap[routeName].startMins = startLine.triggerMins
+        whyoneartharecheckpointsnotstoredwiththerestorsomethingandthenthatwiththemap[routeName].startMaxs = startLine.triggerMaxs
         // End
         table finishLineData = expect table(data["finish_line"])
         ParkourLine endLine = PK_BuildParkourLine(finishLineData)
-        file.endMins = endLine.triggerMins
-        file.endMaxs = endLine.triggerMaxs
+        whyoneartharecheckpointsnotstoredwiththerestorsomethingandthenthatwiththemap[routeName].endMins = endLine.triggerMins
+        whyoneartharecheckpointsnotstoredwiththerestorsomethingandthenthatwiththemap[routeName].endMaxs = endLine.triggerMaxs
         // Leaderboards
         table leaderboardsData = expect table(data["leaderboards"])
         table localLeaderboardData = expect table(leaderboardsData["local"])
         table worldLeaderboardData = expect table(leaderboardsData["world"])
 
         // Serialized
-        PK_mapConfiguration.startLineStr = EncodeJSON(startLineData)
-        PK_mapConfiguration.finishLineStr = EncodeJSON(finishLineData)
-        PK_mapConfiguration.localLeaderboardStr = EncodeJSON(localLeaderboardData)
-        PK_mapConfiguration.worldLeaderboardStr = EncodeJSON(worldLeaderboardData)
+        PK_mapConfiguratione.startLineStr = EncodeJSON(startLineData)
+        PK_mapConfiguratione.finishLineStr = EncodeJSON(finishLineData)
+        PK_mapConfiguratione.localLeaderboardStr = EncodeJSON(localLeaderboardData)
+        PK_mapConfiguratione.worldLeaderboardStr = EncodeJSON(worldLeaderboardData)
 
         // Serialize route name
-        string routeName = expect string(data["name"])
+        string routeName2 = expect string(data["name"])
         table routeNameData = expect table(data["route_name"])
-        routeNameData["name"] <- routeName
-        PK_mapConfiguration.routeNameStr = EncodeJSON(routeNameData)
+        routeNameData["name"] <- routeName2
+        PK_mapConfiguratione.routeNameStr = EncodeJSON(routeNameData)
 
         // Robot
         table robotData = expect table(data["robot"])
@@ -198,10 +384,10 @@ void function LoadParkourMapConfiguration(table data)
         table startIndicator = expect table(data["indicator"])
         vector startIndicatorOrigin = PK_ArrayToFloatVector( expect array(startIndicator["coordinates"]) )
         int startIndicatorRadius = expect int(startIndicator["trigger_radius"])
-        SetUpStartIndicator( startIndicatorOrigin, startIndicatorRadius )
+        PK_mapConfiguratione.startIndicator = SetUpStartIndicator( startIndicatorOrigin, startIndicatorRadius )
 
         // Store object references
-        file.ziplines = expect array(data["ziplines"])
+        whyoneartharecheckpointsnotstoredwiththerestorsomethingandthenthatwiththemap[routeName].ziplines = expect array(data["ziplines"])
         array entities = expect array(data["entities"])
         foreach(ent in entities)
         {
@@ -219,21 +405,24 @@ void function LoadParkourMapConfiguration(table data)
             }
 
             PrecacheModel( StringToAsset( me.model_name ) )
-            file.entities.append(me)
+            whyoneartharecheckpointsnotstoredwiththerestorsomethingandthenthatwiththemap[routeName].entities.append(me)
         }
 
         // Apply perks
         table perks = expect table(data["perks"]);
-        PK_ApplyPerks( perks )
+        PK_ApplyPerks( routeName,perks )
 
-        PK_mapConfiguration.finishedFetchingData = true
-    } catch (err) {
-        print("Error while loading map configuration: " + err)
-    }
+        PK_mapConfiguratione.finishedFetchingData = true
+    // } catch (err) {
+        
+    //     print("Error while loading map configuration: " + err)
+    //     return PK_mapConfiguratione
+    // }
+    return PK_mapConfiguratione
 }
 
 
-void function SetUpStartIndicator( vector origin, int triggerRadius )
+entity function SetUpStartIndicator( vector origin, int triggerRadius )
 {
     // Entity used to show indicator's location
     entity point = CreateEntity( "prop_dynamic" )
@@ -242,7 +431,7 @@ void function SetUpStartIndicator( vector origin, int triggerRadius )
     point.kv.modelscale = 1
     point.Hide()
     DispatchSpawn( point )
-    PK_mapConfiguration.startIndicator = point
+    
 
     // Only showing indicator when player is far from its origin
     entity trigger = CreateTriggerRadiusMultiple( origin, triggerRadius.tofloat(), [], TRIG_FLAG_PLAYERONLY)
@@ -264,6 +453,7 @@ void function SetUpStartIndicator( vector origin, int triggerRadius )
     float cylinderHeight = 800.0
     DebugDrawCylinder( <origin.x, origin.y, origin.z - cylinderHeight>, <90, 0, 0>, triggerRadius.tofloat(), -2*cylinderHeight, 80, 80, 255, true, 10000.0 )
     DebugDrawSphere( origin, 25.0, 80, 80, 255, true, 10000.0 )
+    return point
 }
 
 
@@ -284,38 +474,15 @@ void function SpawnZiplines( array coordinates )
 /**
  * Spawns stuff on the map (thanks Zanieon for that!).
  **/
-void function SpawnEntities()
-{
-    foreach(obj in file.entities)
-    {
-        entity prop = CreateEntity( "prop_script" )
-        prop.SetValueForModelKey( StringToAsset( obj.model_name ) )
-        prop.SetOrigin( obj.coordinates )
-        prop.SetAngles( obj.angles )
-        prop.kv.modelscale = obj.scale
-        prop.kv.fadedist = -1
-        prop.kv.renderamt = 255
-        prop.kv.rendercolor = "255 255 255"
-        prop.kv.solid = 6
-        ToggleNPCPathsForEntity( prop, false )
-        prop.SetAIObstacle( true )
-        prop.SetTakeDamageType( DAMAGE_NO )
-        prop.SetScriptPropFlags( SPF_BLOCKS_AI_NAVIGATION | SPF_CUSTOM_SCRIPT_3 )
-        prop.AllowMantle()
-        DispatchSpawn( prop )
 
-        if ( obj.hidden )
-        {
-            prop.Hide()
-        }
-
-        file.lastSpawnedProp = prop
-    }
-}
 
 entity function DebugPK_GetEntity()
 {
-    return file.lastSpawnedProp
+    // Return last spawned prop from first route
+    if (routesw.len() > 0) {
+        return whyoneartharecheckpointsnotstoredwiththerestorsomethingandthenthatwiththemap[routesw[0]].lastSpawnedProp
+    }
+    return null
 }
 
 
@@ -359,8 +526,9 @@ void function InitializeMapConfigurationFromFile()
     void functionref( string ) onFileLoad = void function ( string result )
     {
         table data = DecodeJSON(result)
-        LoadParkourMapConfiguration( data )
-        PK_mapConfiguration.finishedFetchingData = true;
+        LoadParkourMapConfigurationnotstupid( data )
+        GetEnt( "worldspawn" ).Signal("Pkloadedconfig")
+        fetchedall = true
     }
     NSLoadFile(fileName, onFileLoad)
 }
@@ -386,17 +554,18 @@ void function InitializeMapConfigurationFromAPI()
     // Initialize credentials
     PK_credentials.endpoint = GetConVarString("parkour_api_endpoint")
     PK_credentials.secret = GetConVarString("parkour_api_secret")
-    thread FindEventIdentifier()
-    while (PK_credentials.eventId == "") {
-        WaitFrame()
-    }
-    thread FindMapIdentifier()
-    while (PK_credentials.mapId == "") {
-        WaitFrame()
-    }
-
-    thread FetchMapConfigurationsFromAPI()
+    // thread FindEventIdentifier()
+    // while (PK_credentials.eventId == "") {
+    //     WaitFrame()
+    // }
+    // thread FindMapIdentifier()
+    // while (PK_credentials.mapId == "") {
+    //     WaitFrame()
+    // }
+    thread fetchmapconfigsfromapibutnotstupid()
+    // thread FetchMapConfigurationsFromAPI()
 }
+
 
 
 /**
@@ -517,6 +686,41 @@ void function FindMapIdentifier()
 }
 
 
+void function fetchmapconfigsfromapibutnotstupid(){
+    HttpRequest request
+    request.method = HttpRequestMethod.GET
+    request.url = format("%s/v1/maps/%s/routes", PK_credentials.endpoint, GetMapName())
+    table<string, array<string> > headers
+    headers[ "authentication" ] <- [PK_credentials.secret]
+    request.headers = headers
+
+    void functionref( HttpRequestResponse ) onSuccess = void function ( HttpRequestResponse response )
+    {
+        print("==> Parkour map configurations retrieved!")
+
+        string inputStr = "{\"data\":" + response.body + "}"
+        table data = DecodeJSON(inputStr)
+        table configurations = expect table(data["data"])
+
+        // // todo: round-robin over configurations
+        // table configuration = expect table(configurations[0])
+        // PK_credentials.routeId = expect string(configuration["id"])
+
+        LoadParkourMapConfigurationnotstupid(configurations)
+        thread PK_WorldLeaderboard_StartPeriodicFetching()
+    }
+
+    void functionref( HttpRequestFailure ) onFailure = void function ( HttpRequestFailure failure )
+    {
+        print("Something went wrong while fetching map configuration from parkour API.")
+        print("=> " + failure.errorCode)
+        print("=> " + failure.errorMessage)
+        PK_has_api_access = false
+    }
+
+    NSHttpRequest( request, onSuccess, onFailure )
+}
+
 /**
  * This method fetches the `routes` resource of the Parkour API to retrieve the map
  * configuration for the current match: where to spawn leaderboards and start/finish
@@ -547,7 +751,7 @@ void function FetchMapConfigurationsFromAPI()
         table configuration = expect table(configurations[0])
         PK_credentials.routeId = expect string(configuration["id"])
 
-        LoadParkourMapConfiguration(configuration)
+        LoadParkourMapConfigurationnotstupid(configuration)
         thread PK_WorldLeaderboard_StartPeriodicFetching()
     }
 

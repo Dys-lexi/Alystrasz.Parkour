@@ -1,0 +1,174 @@
+{
+  "GET /v1/events": {
+    "status": "success",
+    "data": [
+      {
+        "name": "awesome parkour",
+        "description": "Wanna make a route? Join the discord!",
+        "start": 1706728421,
+        "end": 1809406821,
+        "id": "aec3c342-fd18-4a92-8469-cd4776051b78"
+      }
+    ]
+  },
+  "GET /v1/events/{event_id}/maps": {
+    "status": "success",
+    "event_id": "aec3c342-fd18-4a92-8469-cd4776051b78",
+    "data": [
+      {
+        "map_name": "mp_thaw",
+        "id": "1f9227a7-c1aa-4923-b98a-ef482b0c0bc8"
+      },
+      {
+        "map_name": "mp_angel_city",
+        "id": "2c1ae911-4442-4236-9792-8f74a5cca0f4"
+      },
+      {
+        "map_name": "mp_wargames",
+        "id": "d3f0caf0-20cf-4082-9c0f-8df92c5aee6b"
+      },
+      {
+        "map_name": "mp_relic02",
+        "id": "972aae6e-7ced-4e07-8f6d-b41b7a3d4158"
+      },
+      {
+        "map_name": "mp_black_water_canal",
+        "id": "e4f0b9cc-c6c4-4853-8ccc-fd802e35a524"
+      },
+      {
+        "map_name": "mp_lf_township",
+        "id": "8e9e7e76-94ef-420c-ad64-9b1bfbdbde4a"
+      },
+      {
+        "map_name": "mp_homestead",
+        "id": "1ade1fac-40ae-41f7-9d7b-ab8c9894187c"
+      },
+      {
+        "map_name": "mp_drydock",
+        "id": "8e2fd7c8-9862-475a-a3c1-81c3487ba3a1"
+      },
+      {
+        "map_name": "mp_lf_traffic",
+        "id": "f89ca37d-414b-471b-9196-444b0dfe71b6"
+      }
+    ]
+  },
+  "GET /v1/maps/{map_id}/routes": {
+    "status": "success",
+    "map_id": "1f9227a7-c1aa-4923-b98a-ef482b0c0bc8",
+    "map_name": "mp_thaw",
+    "data": [
+      {
+        "id": "7",
+        "name": "Origin",
+        "start_line": {
+          "origin": [-160.82, -3041.79, -35.0],
+          "angles": [0, 0, 0],
+          "dimensions": [120, 80],
+          "trigger": [
+            [-157.2, -3169.45, -200.0],
+            [-68.0326, -2931.55, -53.4112]
+          ]
+        },
+        "finish_line": {
+          "origin": [-399.065, -2906.22, -43.9688],
+          "angles": [0, -90, 0],
+          "dimensions": [120, 80],
+          "trigger": [
+            [-468.13, -3125.91, -139.767],
+            [-334.145, -2914.39, -7.99543]
+          ]
+        },
+        "leaderboards": {
+          "local": {
+            "origin": [-536.0, -2929.38, -36.0],
+            "angles": [0, 90, 0],
+            "dimensions": [80, 75],
+            "source": {
+              "origin": [-536.0, -2929.38, 17.0],
+              "angles": [0, 90, 0],
+              "dimensions": [50, 33]
+            }
+          },
+          "world": {
+            "origin": [-616.0, -2992.5, -36.0],
+            "angles": [0, 180, 0],
+            "dimensions": [80, 75],
+            "source": {
+              "origin": [-616.0, -2992.5, 17.0],
+              "angles": [0, 180, 0],
+              "dimensions": [50, 33]
+            }
+          }
+        },
+        "checkpoints": [
+          [471.636, -3438.36, 112.031],
+          [1078.87, -4349.23, 30.0313],
+          [1286.21, -5821.39, -174.185],
+          [1478.94, -4339.42, 30.0313],
+          [2337.49, -2532.42, 63.8572],
+          [1767.95, -554.624, -16.3175],
+          [-488.85, -956.027, -191.969],
+          [-1806.92, -1307.96, -319.969],
+          [-1844.4, -1307.25, 949.407]
+        ],
+        "start": {
+          "origin": [-492.656, -3036.0, -107.969],
+          "angles": [0, 0, 0]
+        },
+        "end": {
+          "origin": [-399.065, -2906.22, -83.9688]
+        },
+        "ziplines": [
+          [
+            [-246.983, -2767.25, -55.6686],
+            [-1007.05, -2070.53, 207.528]
+          ],
+          [
+            [1278.67, -4188.2, 117.5001],
+            [1280.04, -3168.49, 79.5001]
+          ],
+          [
+            [1604.62, -2300.76, 465.017],
+            [1601.41, -1298.66, 521.017]
+          ]
+        ],
+        "perks": {
+          "weapon": "mp_weapon_epg",
+          "kit": "15",
+          "ability": "mp_ability_grapple",
+          "grenade": "mp_weapon_grenade_gravity"
+        },
+        "robot": {
+          "origin": [-590.0, -3234.85, -105.969],
+          "angles": [0, 180, 0],
+          "talkable_radius": 60,
+          "animation": "mv_idle_weld"
+        },
+        "indicator": {
+          "coordinates": [-331.044, -3128.37, 118.0313],
+          "trigger_radius": 400
+        },
+        "route_name": {
+          "origin": [0.0, 0.0, 0.0],
+          "angles": [0, 0, 0],
+          "dimensions": [0, 0]
+        },
+        "entities": []
+      }
+    ]
+  },
+  "GET /v1/maps": {
+    "status": "error",
+    "message": "HTTP method not allowed"
+  },
+  "GET /v1/maps/:map_name/routes": {
+    "status": "error",
+    "message": "Route not found.",
+    "note": "Endpoint requires map ID instead of map name"
+  },
+  "GET /v1/maps/:map_name/routes/:route_slug/scores": {
+    "status": "error",
+    "message": "HTTP method not allowed"
+  }
+}

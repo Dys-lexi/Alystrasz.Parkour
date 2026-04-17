@@ -84,8 +84,8 @@ void function PK_ResetPlayerStats(entity player, bool preserveBestTime = false)
 		...
 	}
 
-    stats.checkpointPassages = [PK_startOrigin]
-    stats.checkpointAngles = [PK_startAngles]
+    // stats.checkpointPassages = [PK_startOrigin]
+    // stats.checkpointAngles = [PK_startAngles] (who cares about positions anyways?)
 
 	if (preserveBestTime) {
 		stats.bestTime = PK_localStats[playerName].bestTime
