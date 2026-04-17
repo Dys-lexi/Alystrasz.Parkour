@@ -105,7 +105,7 @@ void function reloadmapw(){
 
 bool function reloadmap(entity player, array<string> args) {
     delaythread (5) reloadmapw()
-    discordlogsendmessage("reloading map in 5s")
+    Chat_ServerBroadcast("reloading map in 5s")
     return true
 }
 void function loadsavespots(){
@@ -201,12 +201,12 @@ void function saveplayerspot(entity player,bool deletee = false){
 
 bool function savespotwrapper(entity player, array<string> args){
     saveplayerspot(player)
-    discordlogsendmessage("saving this spot",4,[player.GetUID()])
+    Chat_ServerPrivateMessage(player,"saving this spot")
     return true
 }
 bool function resetplayerspotwrapper(entity player, array<string> args){
     saveplayerspot(player,true)
-    discordlogsendmessage("removing save spot",4,[player.GetUID()])
+    Chat_ServerPrivateMessage(,player"removing save spot")
     
     return true
 }
@@ -225,8 +225,8 @@ bool function changeroute(entity player, array<string> args){
     // Remote_CallFunction_NonReplay(player, "ServerCallback_PK_ResetRun")
 
     if (!args.len() || !routematchstuff(args[0]).len()){
-        discordlogsendmessage("[38;5;203mcannot find route, do `!cr routename` below are routes:")
-        thread waitabit(player)
+        
+        thread waitabit(player,true)
         return true
     }
     selectedrouteforplayers[player] = routematchstuff(args[0])[0]
@@ -257,8 +257,11 @@ array <string> function routematchstuff(string playername){ //returns all player
 	return matchedplayers
 }
 
-void function waitabit(entity player){
+void function waitabit(entity player, bool waitmore = false){
     WaitFrame()
+    if (waitmore){
+        Chat_ServerPrivateMessage(player,"[38;5;203mcannot find route, do `[38;5;219m!cr routename[38;5;203m` below are routes:")
+    }
     table <string,int> routecounts
     foreach (key, value in selectedrouteforplayers){
         if (!(value in routecounts)){
@@ -276,7 +279,7 @@ void function waitabit(entity player){
         else{
             constructer += " [38;5;249m("+"none" + " playing)"
         }
-        discordlogsendmessage(constructer,4,[player.GetUID()])
+        Chat_ServerPrivateMessage(player,constructer)
     }
 }
 
