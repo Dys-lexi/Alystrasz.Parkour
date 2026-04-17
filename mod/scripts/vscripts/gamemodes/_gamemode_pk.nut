@@ -1,12 +1,14 @@
 untyped
 global function _PK_Init
 global string defaultcolourforecheclptoitns = "50 50 50"
+global string nextcheckpoint = "0 100 0"
+global string completedcheckpoint = "50 50 50"
 global function MovePlayerToMapStart
 global function PK_OnPlayerConnectedbutnotreal
 global bool IS_PK = false
 global function OnPlayerReset
-global array<PK_LeaderboardEntry> PK_leaderboard = []
-global array<PK_LeaderboardEntry> PK_worldLeaderboard = []
+global table<string, array<PK_LeaderboardEntry> > PK_leaderboard
+global table<string, array<PK_LeaderboardEntry> > PK_worldLeaderboard
 global table<string, array<vector> > PK_checkpoints
 global table<entity, array<entity> > PK_checkpointEntities
 global table<string, vector> PK_startOrigin
@@ -24,7 +26,7 @@ void function _PK_Init() {
 	ClassicMP_SetCustomIntro( ClassicMP_DefaultNoIntro_Setup, 10 )
 	ClassicMP_ForceDisableEpilogue( true )
 	SetLoadoutGracePeriodEnabled( false )
-	SetTimeoutWinnerDecisionFunc( ParkourDecideWinner )
+	// SetTimeoutWinnerDecisionFunc( ParkourDecideWinner )
 
 	// Precache checkpoint model
 	PrecacheModel($"models/fx/xo_emp_field.mdl")
@@ -177,7 +179,9 @@ void function OnPlayerReset(entity player) {
 
 	// Stop ongoing stim boost
 	player.Signal("OnChangedPlayerClass")
-
+foreach (checkpoint in PK_checkpointEntities[player]){
+						checkpoint.kv.defaultcolourforecheclptoitns = "0 255 0"
+					}
 	Remote_CallFunction_NonReplay( player, "ServerCallback_PK_ToggleStartIndicatorDisplay", false )
 }
 
@@ -191,7 +195,7 @@ void function RespawnPlayerToConfirmedCheckpoint(entity player)
 	// Do nothing if called during server initialization
 	
 	if (fetchedall == false) return
-	discordlogsendmessage("w "+ selectedrouteforplayers[player])
+	// discordlogsendmessage("w "+ selectedrouteforplayers[player])
 	// Freeze player if respawn occurs after match end
 	if (GetGameState() > eGameState.SuddenDeath) {
 		player.FreezeControlsOnServer()
@@ -257,34 +261,34 @@ void function MovePlayerToMapStart( entity player )
 	player.SetAngles(pullsavespot(player)["angle"])
 }
 
-int function ParkourDecideWinner()
-{
-	if (PK_leaderboard.len() == 0)
-		return TEAM_UNASSIGNED
+// int function ParkourDecideWinner()
+// {
+// 	if (PK_leaderboard.len() == 0)
+// 		return TEAM_UNASSIGNED
 
-	bool found = false
-	string winnerName = PK_leaderboard[0].playerName
-	float time = PK_leaderboard[0].time
-	foreach( player in GetPlayerArray() ) {
-		if ( !IsValid( player ) ) {
-			continue
-		}
+// 	bool found = false
+// 	string winnerName = PK_leaderboard[0].playerName
+// 	float time = PK_leaderboard[0].time
+// 	foreach( player in GetPlayerArray() ) {
+// 		if ( !IsValid( player ) ) {
+// 			continue
+// 		}
 
-		if ( player.GetPlayerName() == winnerName ) {
-			SetTeam( player, TEAM_MILITIA )
-			found = true
-			break
-		}
-	}
+// 		if ( player.GetPlayerName() == winnerName ) {
+// 			SetTeam( player, TEAM_MILITIA )
+// 			found = true
+// 			break
+// 		}
+// 	}
 
-	// Tell players about the winner
-	foreach ( player in GetPlayerArray() )
-	{
-		if ( !IsValid( player ) )
-			continue
+// 	// Tell players about the winner
+// 	foreach ( player in GetPlayerArray() )
+// 	{
+// 		if ( !IsValid( player ) )
+// 			continue
 
-        ServerToClientStringCommand( player, "ParkourResults " + winnerName + " " + format("%.2f", time) )
-	}
+//         ServerToClientStringCommand( player, "ParkourResults " + winnerName + " " + format("%.2f", time) )
+// 	}
 
-	return found ? TEAM_MILITIA : TEAM_UNASSIGNED
-}
+// 	return found ? TEAM_MILITIA : TEAM_UNASSIGNED
+// }

@@ -40,12 +40,12 @@ void function threadedspawncheckpoints(entity player){
 		waitthread PK_SpawnCheckpointsforeach(player,PK_checkpoints[selectedrouteforplayers[player]], whyoneartharecheckpointsnotstoredwiththerestorsomethingandthenthatwiththemap[selectedrouteforplayers[player]].startMins, whyoneartharecheckpointsnotstoredwiththerestorsomethingandthenthatwiththemap[selectedrouteforplayers[player]].startMaxs, whyoneartharecheckpointsnotstoredwiththerestorsomethingandthenthatwiththemap[selectedrouteforplayers[player]].endMins, whyoneartharecheckpointsnotstoredwiththerestorsomethingandthenthatwiththemap[selectedrouteforplayers[player]].endMaxs)
 		array<entity> props = SpawnEntities(player,whyoneartharecheckpointsnotstoredwiththerestorsomethingandthenthatwiththemap[selectedrouteforplayers[player]].entities)
 		array<entity> ziplines = SpawnZiplines(player,whyoneartharecheckpointsnotstoredwiththerestorsomethingandthenthatwiththemap[selectedrouteforplayers[player]].ziplines)
-		print("wqodwq,fwqf")
-		
+		// print("wqodwq,fwqf")
+		entity marvin = PK_SpawnAmbientMarvin(player,robots[selectedrouteforplayers[player]].origin, robots[selectedrouteforplayers[player]].angles, robots[selectedrouteforplayers[player]].talkableRadius, robots[selectedrouteforplayers[player]].animation)
 		player.WaitSignal("Iwanttochangearoute")
 		waitthread PK_OnPlayerConnectedbutnotreal(player)
-		printt("hereeee")
-
+		// printt("hereeee")
+		marvin.Destroy()
 		foreach(checkpoint in PK_checkpointEntities[player]){
 			checkpoint.Destroy()
 		}
@@ -184,8 +184,8 @@ void function PK_SpawnCheckpointsforeach(entity targetplayer, array <vector> che
 				{
 					if (PK_checkpointEntitiesoutput.len()  > index){
 						// discordlogs`endmessage("I tried to be pretty and pink")
-					PK_checkpointEntitiesoutput[index].kv.rendercolor = "0 100 0" // Ig if the compelted don't need next to be red
-					PK_checkpointEntitiesoutput[index-1].kv.rendercolor = defaultcolourforecheclptoitns
+					PK_checkpointEntitiesoutput[index].kv.rendercolor = nextcheckpoint // Ig if the compelted don't need next to be red
+					PK_checkpointEntitiesoutput[index-1].kv.rendercolor = completedcheckpoint
 					}
 					// pStats.checkpointPassages.append( player.GetOrigin() )	// Saves player location+angles when checkpoint is reached
 					// pStats.checkpointAngles.append( player.GetAngles() )
@@ -304,14 +304,15 @@ void function SpawnStartTrigger(array<entity> whyonearthisitlikethisomgthisisthe
 				continue
 			}
 
-					PK_checkpointEntities[player][0].kv.rendercolor = "0 100 0" // Ig if the compelted don't need next to be red
-
 			string playerName = player.GetPlayerName()
 
 			if (PointIsWithinBounds( player.GetOrigin(), volumeMins, volumeMaxs ))
 			{
 				if (!PK_localStats[playerName].justFinished && !PK_localStats[playerName].isRunning && !PK_localStats[playerName].isResetting)
 				{
+										PK_checkpointEntities[player][0].kv.rendercolor = nextcheckpoint // Ig if the compelted don't need next to be red
+
+
 					PK_localStats[playerName].startTime = Time()
 					PK_localStats[playerName].isRunning = true
 					Remote_CallFunction_NonReplay( player, "ServerCallback_PK_UpdateNextCheckpointMarker", whyonearthisitlikethisomgthisisthecheckpointentarraytho[0].GetEncodedEHandle(), 0, checkpointsCount )

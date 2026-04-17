@@ -6,6 +6,7 @@ global struct PK_LeaderboardEntry
 {
 	string playerName
 	float time
+	string uid
 }
 
 /**
@@ -22,6 +23,7 @@ global struct PK_LeaderboardEntry
 void function PK_StoreNewLeaderboardEntry( entity player, float duration )
 {
 	print("New time for " + player.GetPlayerName() + ": " + duration)
+	string selectedRoute = selectedrouteforplayers[player]
 	int insertionIndex = 0
 	bool leaderboardNeedsUpdating = false
 
@@ -29,10 +31,11 @@ void function PK_StoreNewLeaderboardEntry( entity player, float duration )
 	// Check if new entry will fit leaderboard
 	{
 		// Check if there's a previous time (and if player improved his time)
-		foreach (PK_LeaderboardEntry entry in PK_leaderboard)
+		foreach (PK_LeaderboardEntry entry in PK_leaderboard[selectedRoute])
 		{
-			if (entry.playerName == player.GetPlayerName())
+			if (entry.uid == player.GetUID())
 			{
+
 				if (entry.time < duration)
 					return
 				break
@@ -40,13 +43,13 @@ void function PK_StoreNewLeaderboardEntry( entity player, float duration )
 		}
 
 		// If leaderboard is not full, new entry will fit
-		if (PK_leaderboard.len() < 10)
+		if (PK_leaderboard[selectedRoute].len() < 10)
 			leaderboardNeedsUpdating = true
 
 		// Check if input time should appear in leaderboard
-		if (!leaderboardNeedsUpdating && PK_leaderboard.len() >= 10)
+		if (!leaderboardNeedsUpdating && PK_leaderboard[selectedRoute].len() >= 10)
 		{
-			float lastTime = PK_leaderboard[9].time
+			float lastTime = PK_leaderboard[selectedRoute][9].time
 			if (duration < lastTime)
 			{
 				leaderboardNeedsUpdating = true
@@ -62,20 +65,21 @@ void function PK_StoreNewLeaderboardEntry( entity player, float duration )
 
 		// Remove eventual previous player entry
 		array<string> entriesNames = []
-		foreach (PK_LeaderboardEntry entry in PK_leaderboard) {
-			entriesNames.append( entry.playerName )
+		foreach (PK_LeaderboardEntry entry in PK_leaderboard[selectedRoute]) {
+			entriesNames.append( entry.uid )
 		}
-		int playerIndex = entriesNames.find( player.GetPlayerName() )
+		int playerIndex = entriesNames.find( player.GetUID() )
 		if (playerIndex != -1)
-			PK_leaderboard.remove( playerIndex )
+			PK_leaderboard[selectedRoute].remove( playerIndex )
 
 		// Add actual entry
 		PK_LeaderboardEntry entry = { ... }
 		entry.playerName = player.GetPlayerName()
 		entry.time = duration
-		PK_leaderboard.append( entry )
+		entry.uid = player.GetUID()
+		PK_leaderboard[selectedRoute].append( entry )
 
-		PK_leaderboard.sort(int function(PK_LeaderboardEntry a, PK_LeaderboardEntry b) {
+		PK_leaderboard[selectedRoute].sort(int function(PK_LeaderboardEntry a, PK_LeaderboardEntry b) {
 			if (a.time > b.time) return 1
 			else if (b.time < a.time) return -1
 			return 0;
@@ -83,10 +87,10 @@ void function PK_StoreNewLeaderboardEntry( entity player, float duration )
 
 		// Update insertionIndex
 		entriesNames = []
-		foreach (PK_LeaderboardEntry entry in PK_leaderboard) {
-			entriesNames.append( entry.playerName )
+		foreach (PK_LeaderboardEntry entry in PK_leaderboard[selectedRoute]) {
+			entriesNames.append( entry.uid )
 		}
-		insertionIndex = entriesNames.find( player.GetPlayerName() )
+		insertionIndex = entriesNames.find( player.GetUID() )
 		Assert(insertionIndex != -1)
 
 		// Update player stats
@@ -96,10 +100,10 @@ void function PK_StoreNewLeaderboardEntry( entity player, float duration )
 		// Send new score to API
 		// If score should appear in world scoreboard, refresh world scoreboard
 		if ( PK_has_api_access ) {
-			PK_SendWorldLeaderboardEntryToAPI( entry )
+			PK_SendWorldLeaderboardEntryToAPI( entry, selectedRoute )
 
-			int length = PK_worldLeaderboard.len()
-			if (length < 10 || entry.time < PK_worldLeaderboard[length-1].time ) {
+			int length = PK_worldLeaderboard[selectedRoute].len()
+			if (length < 10 || entry.time < PK_worldLeaderboard[selectedRoute][length-1].time ) {
 				// Leave some time to API to store new score
 				wait 1
 				print("Forcing world scores updating.")
@@ -129,7 +133,8 @@ void function PK_UpdatePlayersLeaderboard( int startIndex, bool updateWorldLeade
 
 void function PK_UpdatePlayerLeaderboard( entity player, int startIndex, bool updateWorldLeaderboard = false )
 {
-	array<PK_LeaderboardEntry> board = updateWorldLeaderboard ? PK_worldLeaderboard : PK_leaderboard;
+	string selectedRoute = selectedrouteforplayers[player]
+	array<PK_LeaderboardEntry> board = updateWorldLeaderboard ? PK_worldLeaderboard[selectedRoute] : PK_leaderboard[selectedRoute];
 
 	for (int i=startIndex; i<board.len(); i++)
 	{

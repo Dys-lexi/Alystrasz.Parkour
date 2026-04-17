@@ -84,14 +84,14 @@ global table<string, RouteData> whyoneartharecheckpointsnotstoredwiththerestorso
 /**
  * This object stores information needed to spawn a helping robot on the map.
  **/
-struct {
+global struct robot{
     vector origin
     vector angles
     int talkableRadius
     string animation
-} robot;
+} ;
 
-
+global table<string,robot> robots
 
 /**
  * Get the map configuration, applies it to the game level and send UI elements
@@ -222,19 +222,78 @@ table <string, vector> function pullsavespot(entity player){
 }
 
 bool function changeroute(entity player, array<string> args){
-    selectedrouteforplayers[player] = args[0]
+    // Remote_CallFunction_NonReplay(player, "ServerCallback_PK_ResetRun")
+
+    if (!args.len() || !routematchstuff(args[0]).len()){
+        discordlogsendmessage("[38;5;203mcannot find route, do `!cr routename` below are routes:")
+        thread waitabit(player)
+        return true
+    }
+    selectedrouteforplayers[player] = routematchstuff(args[0])[0]
     player.Signal("Iwanttochangearoute")
     OnPlayerReset(player)
-    
+    // foreach (checkpoint in PK_checkpointEntities[player]){
+	// 					checkpoint.kv.defaultcolourforecheclptoitns = defaultcolourforecheclptoitns
+	// 				}
     return true
 }
 
+
+array <string> function routematchstuff(string playername){ //returns all players that have a partial playername match
+	array<string> matchedplayers = [];
+    array<string> players = returnroutes()
+    foreach (string player in players)
+        {
+            
+            
+  
+                if (player.tolower().find(playername.tolower()) != null)
+                {
+                    matchedplayers.append(player)
+
+                }
+            
+        }
+	return matchedplayers
+}
+
+void function waitabit(entity player){
+    WaitFrame()
+    table <string,int> routecounts
+    foreach (key, value in selectedrouteforplayers){
+        if (!(value in routecounts)){
+            routecounts[value] <- 0
+        }
+        routecounts[value] += 1
+    }
+    foreach (route in returnroutes()){
+        string constructer = "[38;5;189m"+route
+        if (selectedrouteforplayers[player] == route){
+            constructer += " [38;5;219m(current)"
+        }
+        if (route in routecounts){
+        constructer += " [38;5;249m("+routecounts[route] + " playing)"}
+        else{
+            constructer += " [38;5;249m("+"none" + " playing)"
+        }
+        discordlogsendmessage(constructer,4,[player.GetUID()])
+    }
+}
+
+bool function listroutes(entity player, array<string> args){
+    thread waitabit(player)
+    
+    return true
+}
 void function PK_InitializeMapConfiguration()
 {
     RegisterSignal("Iwanttochangearoute")
     
     RegisterSignal( "Pkloadedconfig" )
     thread loadsavespots()
+        PK_credentials.endpoint = GetConVarString("parkour_api_endpoint")
+    PK_credentials.secret = GetConVarString("parkour_api_secret")
+    KcommandArr.append(new_KCommandStruct(["listroutes","lr"], false,  listroutes, 0, "list routes"))
     KcommandArr.append(new_KCommandStruct(["changeroute","cr"], false,  changeroute, 0, "change your route"))
     KcommandArr.append(new_KCommandStruct(["reload"], false,  reloadmap, 0, "reload the current map"))
     KcommandArr.append(new_KCommandStruct(["reset","re"], false,  resetplayerspotwrapper, 0, "reset your custom save spot"))
@@ -271,7 +330,7 @@ void function PK_InitializeMapConfiguration()
     //     WaitFrame()
     // }
     GetEnt( "worldspawn" ).WaitSignal("Pkloadedconfig")
-
+PK_has_api_access = true
     // Set up world
 	// PK_SpawnCheckpoints( file.startMins, file.startMaxs, file.endMins, file.endMaxs )
     // foreach (routeName, routeData in whyoneartharecheckpointsnotstoredwiththerestorsomethingandthenthatwiththemap) {
@@ -325,7 +384,10 @@ PK_MapConfigurationb function LoadParkourMapConfigurationnotstupidw(table data, 
     // try {
 
         PK_checkpoints[routeName] <- []
+        PK_leaderboard[routeName] <- []
+        PK_worldLeaderboard[routeName] <- []
         RouteData routeData
+        robot realrobot
         routeData.ziplines = []
         routeData.entities = []
         whyoneartharecheckpointsnotstoredwiththerestorsomethingandthenthatwiththemap[routeName] <- routeData
@@ -375,10 +437,11 @@ PK_MapConfigurationb function LoadParkourMapConfigurationnotstupidw(table data, 
 
         // Robot
         table robotData = expect table(data["robot"])
-        robot.origin = PK_ArrayToFloatVector( expect array(robotData["origin"]) )
-        robot.angles = PK_ArrayToIntVector( expect array(robotData["angles"]) )
-        robot.talkableRadius = expect int(robotData["talkable_radius"])
-        robot.animation = expect string(robotData["animation"])
+        realrobot.origin = PK_ArrayToFloatVector( expect array(robotData["origin"]) )
+        realrobot.angles = PK_ArrayToIntVector( expect array(robotData["angles"]) )
+        realrobot.talkableRadius = expect int(robotData["talkable_radius"])
+        realrobot.animation = expect string(robotData["animation"])
+        robots[routeName] <- realrobot
 
         // Start indicator
         table startIndicator = expect table(data["indicator"])
@@ -552,8 +615,7 @@ void function InitializeMapConfigurationFromFile()
 void function InitializeMapConfigurationFromAPI()
 {
     // Initialize credentials
-    PK_credentials.endpoint = GetConVarString("parkour_api_endpoint")
-    PK_credentials.secret = GetConVarString("parkour_api_secret")
+
     // thread FindEventIdentifier()
     // while (PK_credentials.eventId == "") {
     //     WaitFrame()

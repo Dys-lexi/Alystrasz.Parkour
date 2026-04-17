@@ -1,13 +1,16 @@
 global function PK_SpawnAmbientMarvin
 
-void function PK_SpawnAmbientMarvin( vector origin, vector angles, int talkableRadius, string animation )
+entity function PK_SpawnAmbientMarvin(entity targetplayer, vector origin, vector angles, int talkableRadius, string animation )
 {
 	entity npc_marvin = CreateEntity( "npc_marvin" )
 	npc_marvin.SetOrigin( origin )
 	npc_marvin.SetAngles( angles )
     SetTeam( npc_marvin, TEAM_IMC )
-    npc_marvin.SetTitle( PK_ROBOT_NAME )
+    npc_marvin.SetTitle( " " )
 	npc_marvin.kv.rendercolor = "255 255 255"
+	npc_marvin.kv.CollisionGroup = TRACE_COLLISION_GROUP_NONE
+						npc_marvin.SetOwner( targetplayer )
+			npc_marvin.kv.VisibilityFlags = ENTITY_VISIBLE_TO_OWNER
 	npc_marvin.kv.health = -1
 	npc_marvin.kv.max_health = -1
 	// npc_marvin.kv.spawnflags = 516  // Fall to ground, Fade Corpse
@@ -31,13 +34,15 @@ void function PK_SpawnAmbientMarvin( vector origin, vector angles, int talkableR
 
 	// Check if player is close to robot
     entity trigger = CreateTriggerRadiusMultiple( origin, talkableRadius.tofloat() + 6, [], TRIG_FLAG_PLAYERONLY, 80, -80)
-    AddCallback_ScriptTriggerEnter( trigger, void function (entity trigger, entity player) {
+    AddCallback_ScriptTriggerEnter( trigger, void function (entity trigger, entity player) : (targetplayer) {
+
 		PK_PlayerStats stats = PK_localStats[player.GetPlayerName()]
-		if (stats.isResetting) return;
+		if (stats.isResetting || player != targetplayer) return;
 		Remote_CallFunction_NonReplay( player, "ServerCallback_PK_SetRobotTalkState", true)
     })
-    AddCallback_ScriptTriggerLeave( trigger, void function (entity trigger, entity player) {
-        Remote_CallFunction_NonReplay( player, "ServerCallback_PK_SetRobotTalkState", false)
+    AddCallback_ScriptTriggerLeave( trigger, void function (entity trigger, entity player) : (targetplayer) {
+		if (player == targetplayer){
+        Remote_CallFunction_NonReplay( player, "ServerCallback_PK_SetRobotTalkState", false)}
     })
 
 	float cylinderHeight = 40.0
@@ -49,4 +54,5 @@ void function PK_SpawnAmbientMarvin( vector origin, vector angles, int talkableR
 	npc_marvin.AddUsableValue( USABLE_BY_PILOTS | USABLE_HINT_ONLY )
 	npc_marvin.SetUsePrompts( "#ROBOT_INTERACTION_PROMPT", "#ROBOT_INTERACTION_PROMPT" )*/
 	// DebugDrawCircleOnEnt( npc_marvin, talkableRadius.tofloat() + 6, 255, 255, 255, 10000.0 )
+	return npc_marvin
 }

@@ -26,10 +26,12 @@ void function PK_WorldLeaderboard_StartPeriodicFetching()
     }
 }
 
-void function WorldLeaderboard_FetchScores_OnSuccess( HttpRequestResponse response )
+void function WorldLeaderboard_FetchScores_OnSuccess( HttpRequestResponse response, string routeName )
 {
     string inputStr = "{\"data\":" + response.body + "}"
+    // printt(response.body)
     table data = DecodeJSON(inputStr)
+    // PrintTable(data)
     array scores = expect array(data["data"])
 
     array<PK_LeaderboardEntry> distantWorldLeaderboard = []
@@ -38,20 +40,21 @@ void function WorldLeaderboard_FetchScores_OnSuccess( HttpRequestResponse respon
         PK_LeaderboardEntry entry
         entry.playerName = expect string(raw_score["name"])
         entry.time = expect float(raw_score["time"])
+        entry.uid = expect string(raw_score["uid"])
         distantWorldLeaderboard.append(entry)
     }
 
-    print("Scores received.")
+    print("Scores received for route: " + routeName)
     PK_has_api_access = true
 
     // Each time a distant scores list is retrieved, we check if local list is the same
     // (to avoid sending updates to clients if nothing changed)
-    int difference_index = CompareLeaderboards(PK_worldLeaderboard, distantWorldLeaderboard)
+    int difference_index = CompareLeaderboards(PK_worldLeaderboard[routeName], distantWorldLeaderboard)
     if (difference_index == -1) {
         print("=> Local leaderboard already up-to-date.")
     } else {
         print("=> Transmitting leaderboard updates to players.")
-        PK_worldLeaderboard = distantWorldLeaderboard;
+        PK_worldLeaderboard[routeName] = distantWorldLeaderboard;
         PK_UpdatePlayersLeaderboard(difference_index, true)
     }
 }
@@ -64,16 +67,25 @@ void function WorldLeaderboard_FetchScores_OnFailure( HttpRequestFailure failure
     PK_has_api_access = false
 }
 
+
 void function PK_WorldLeaderboard_FetchScores()
 {
-    HttpRequest request
-    request.method = HttpRequestMethod.GET
-    request.url = format("%s/v1/routes/%s/scores", PK_credentials.endpoint, PK_credentials.routeId)
-    table<string, array<string> > headers
-    headers[ "authentication" ] <- [PK_credentials.secret]
-    request.headers = headers
+    foreach (routeName in returnroutes()) {
+        string realroute = routeName
+        string routeSlug = StringReplace(routeName, " ", "-", true).tolower()
+        HttpRequest request
+        request.method = HttpRequestMethod.GET
+        request.url = format("%s/v1/maps/%s/routes/%s/scores", PK_credentials.endpoint, GetMapName(), routeSlug)
+        table<string, array<string> > headers
+        headers[ "authentication" ] <- [PK_credentials.secret]
+        request.headers = headers
 
-    NSHttpRequest( request, WorldLeaderboard_FetchScores_OnSuccess, WorldLeaderboard_FetchScores_OnFailure )
+        void functionref( HttpRequestResponse ) onSuccess = void function ( HttpRequestResponse response ) : (realroute) {
+            WorldLeaderboard_FetchScores_OnSuccess(response, realroute)
+        }
+
+        NSHttpRequest( request, onSuccess, WorldLeaderboard_FetchScores_OnFailure )
+    }
 }
 
 // Score submissions
@@ -91,11 +103,13 @@ void function onSubmissionFailure ( HttpRequestFailure failure )
     PK_has_api_access = false
 }
 
-void function PK_SendWorldLeaderboardEntryToAPI( PK_LeaderboardEntry entry )
+void function PK_SendWorldLeaderboardEntryToAPI( PK_LeaderboardEntry entry, string route )
 {
     HttpRequest request
     request.method = HttpRequestMethod.POST
-    request.url = format("%s/v1/routes/%s/scores", PK_credentials.endpoint, PK_credentials.routeId )
+    string routeSlug = StringReplace(route, " ", "-", true).tolower()
+    // discordlogsendmessage("sent too"+ format("%s/v1/maps/%s/routes/%s/scores", PK_credentials.endpoint, GetMapName(), routeSlug ))
+    request.url = format("%s/v1/maps/%s/routes/%s/scores", PK_credentials.endpoint, GetMapName(), routeSlug )
     table<string, array<string> > headers
     headers[ "authentication" ] <- [PK_credentials.secret]
     request.headers = headers
@@ -104,6 +118,7 @@ void function PK_SendWorldLeaderboardEntryToAPI( PK_LeaderboardEntry entry )
     table data = {}
     data[ "name" ] <- entry.playerName
     data[ "time" ] <- entry.time
+    data["uid"] <- entry.uid
     string json = EncodeJSON( data )
     request.body = json
 
@@ -130,7 +145,7 @@ int function CompareLeaderboards( array<PK_LeaderboardEntry> l1, array<PK_Leader
     }
 
     for (int i=0; i<max_len; i++) {
-        if (i == min_len || l1[i].playerName != l2[i].playerName || l1[i].playerName == l2[i].playerName && l1[i].time != l2[i].time) {
+        if (i == min_len || l1[i].uid != l2[i].uid || l1[i].uid == l2[i].uid && l1[i].time != l2[i].time) {
             return i
         }
     }
