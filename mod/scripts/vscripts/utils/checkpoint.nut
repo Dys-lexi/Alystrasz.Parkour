@@ -135,13 +135,19 @@ array<entity> function SpawnEntities(entity player,array<MapEntity> entities)
             prop.SetValueForModelKey( StringToAsset( obj.model_name ) )
             prop.SetOrigin( obj.coordinates )
             prop.SetAngles( obj.angles )
-				prop.SetOwner( player )
-			prop.kv.VisibilityFlags = ENTITY_VISIBLE_TO_OWNER
+				// prop.SetOwner( player )
+				// prop.kv.CollideWithOwner = true
+			// prop.kv.VisibilityFlags = ENTITY_VISIBLE_TO_OWNER
+			prop.kv.physicsmode = 1
+			prop.kv.spawnflags = 1 
             prop.kv.modelscale = obj.scale
             prop.kv.fadedist = -1
             prop.kv.renderamt = 255
             prop.kv.rendercolor = "255 255 255"
             prop.kv.solid = 6
+			// prop.kv.contents = (int(prop.kv.contents) | CONTENTS_PLAYERCLIP)
+			// prop.kv.spawnflags = SF_BLOCK_OWNER_WEAPON
+			prop.Solid()
             ToggleNPCPathsForEntity( prop, false )
             prop.SetAIObstacle( true )
             prop.SetTakeDamageType( DAMAGE_NO )
