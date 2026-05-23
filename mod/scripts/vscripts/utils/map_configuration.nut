@@ -53,7 +53,7 @@ global struct PK_MapConfigurationb {
 
 global table<entity,string> selectedrouteforplayers
 
-global table<string,PK_MapConfigurationb> routes
+global table<string,PK_MapConfigurationb> routesrenamed
 global bool fetchedall = false
 
 global struct MapEntity {
@@ -365,7 +365,7 @@ array<string> function returnroutes(){
 void function LoadParkourMapConfigurationnotstupid(table data){
     foreach (routename,value in data){
         string routeNameStr = expect string(routename)
-        routes[routeNameStr] <- LoadParkourMapConfigurationnotstupidw(expect table(value), routeNameStr)
+        routesrenamed[routeNameStr] <- LoadParkourMapConfigurationnotstupidw(expect table(value), routeNameStr)
         routesw.append(routeNameStr)
 
     }
@@ -762,7 +762,7 @@ void function fetchmapconfigsfromapibutnotstupid(){
     void functionref( HttpRequestResponse ) onSuccess = void function ( HttpRequestResponse response )
     {
         print("==> Parkour map configurations retrieved!")
-
+       
         string inputStr = "{\"data\":" + response.body + "}"
         table data = DecodeJSON(inputStr)
         table configurations = expect table(data["data"])
@@ -807,7 +807,8 @@ void function FetchMapConfigurationsFromAPI()
     void functionref( HttpRequestResponse ) onSuccess = void function ( HttpRequestResponse response )
     {
         print("==> Parkour map configurations retrieved!")
-
+        
+        
         string inputStr = "{\"data\":" + response.body + "}"
         table data = DecodeJSON(inputStr)
         array configurations = expect array(data["data"])

@@ -73,13 +73,13 @@ void function _PK_Init() {
 	// Init client-side elements
 	// 				Remote_CallFunction_NonReplay( player, "ServerCallback_PK_UpdateNextCheckpointMarker", PK_checkpointEntities[player][0].GetEncodedEHandle(), 0, 141 )
 	// wait 2
-	ServerToClientStringCommand( player, "ParkourInitLine start " + routes[selectedrouteforplayers[player]].startLineStr)
-	ServerToClientStringCommand( player, "ParkourInitLine end " + routes[selectedrouteforplayers[player]].finishLineStr)
-	ServerToClientStringCommand( player, "ParkourInitLeaderboard local " + routes[selectedrouteforplayers[player]].localLeaderboardStr)
-	ServerToClientStringCommand( player, "ParkourInitLeaderboard world " + routes[selectedrouteforplayers[player]].worldLeaderboardStr)
-	ServerToClientStringCommand( player, "ParkourInitRouteName " + routes[selectedrouteforplayers[player]].routeNameStr)
+	ServerToClientStringCommand( player, "ParkourInitLine start " + routesrenamed[selectedrouteforplayers[player]].startLineStr)
+	ServerToClientStringCommand( player, "ParkourInitLine end " + routesrenamed[selectedrouteforplayers[player]].finishLineStr)
+	ServerToClientStringCommand( player, "ParkourInitLeaderboard local " + routesrenamed[selectedrouteforplayers[player]].localLeaderboardStr)
+	ServerToClientStringCommand( player, "ParkourInitLeaderboard world " + routesrenamed[selectedrouteforplayers[player]].worldLeaderboardStr)
+	ServerToClientStringCommand( player, "ParkourInitRouteName " + routesrenamed[selectedrouteforplayers[player]].routeNameStr)
 	ServerToClientStringCommand( player, "ParkourInitEndpoint " + endpoint )
-	Remote_CallFunction_NonReplay( player, "ServerCallback_PK_CreateStartIndicator", routes[selectedrouteforplayers[player]].startIndicator.GetEncodedEHandle() )
+	Remote_CallFunction_NonReplay( player, "ServerCallback_PK_CreateStartIndicator", routesrenamed[selectedrouteforplayers[player]].startIndicator.GetEncodedEHandle() )
 
 	// Apply clientside perks
 	// if (PK_perks.floorIsLava) {
@@ -122,13 +122,13 @@ void function PK_OnPlayerConnected(entity player)
 	SetTeam( player, TEAM_IMC )
 
 	// Init client-side elements
-	ServerToClientStringCommand( player, "ParkourInitLine start " + routes[selectedrouteforplayers[player]].startLineStr)
-	ServerToClientStringCommand( player, "ParkourInitLine end " + routes[selectedrouteforplayers[player]].finishLineStr)
-	ServerToClientStringCommand( player, "ParkourInitLeaderboard local " + routes[selectedrouteforplayers[player]].localLeaderboardStr)
-	ServerToClientStringCommand( player, "ParkourInitLeaderboard world " + routes[selectedrouteforplayers[player]].worldLeaderboardStr)
-	ServerToClientStringCommand( player, "ParkourInitRouteName " + routes[selectedrouteforplayers[player]].routeNameStr)
+	ServerToClientStringCommand( player, "ParkourInitLine start " + routesrenamed[selectedrouteforplayers[player]].startLineStr)
+	ServerToClientStringCommand( player, "ParkourInitLine end " + routesrenamed[selectedrouteforplayers[player]].finishLineStr)
+	ServerToClientStringCommand( player, "ParkourInitLeaderboard local " + routesrenamed[selectedrouteforplayers[player]].localLeaderboardStr)
+	ServerToClientStringCommand( player, "ParkourInitLeaderboard world " + routesrenamed[selectedrouteforplayers[player]].worldLeaderboardStr)
+	ServerToClientStringCommand( player, "ParkourInitRouteName " + routesrenamed[selectedrouteforplayers[player]].routeNameStr)
 	ServerToClientStringCommand( player, "ParkourInitEndpoint " + endpoint )
-	Remote_CallFunction_NonReplay( player, "ServerCallback_PK_CreateStartIndicator", routes[selectedrouteforplayers[player]].startIndicator.GetEncodedEHandle() )
+	Remote_CallFunction_NonReplay( player, "ServerCallback_PK_CreateStartIndicator", routesrenamed[selectedrouteforplayers[player]].startIndicator.GetEncodedEHandle() )
 
 	// Apply clientside perks
 	// if (PK_perks.floorIsLava) {

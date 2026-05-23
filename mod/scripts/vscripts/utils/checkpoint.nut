@@ -18,6 +18,12 @@ void function initcheckpoints(){
 
 void function spawncheckpointsforplayerwhatcouldgowrong(entity player){
 	thread threadedspawncheckpoints(player)
+	Chat_ServerPrivateMessage(player,"[38;5;189m",false,false)
+	Chat_ServerPrivateMessage(player,"[38;5;219m listroutes[110m/[38;5;219mlr[110m - list routes on current map",false,false)
+	Chat_ServerPrivateMessage(player,"[38;5;219m changeroute[110m/[38;5;219mcr[110m - change your current active route",false,false)
+	Chat_ServerPrivateMessage(player,"[38;5;219m reload[110m - reload the current active map",false,false)
+	Chat_ServerPrivateMessage(player,"[38;5;219m save[110m/[38;5;219msa[110m - save a custom start spot",false,false)
+	Chat_ServerPrivateMessage(player,"[38;5;219m reset[110m/[38;5;219mre[110m - reset your custom start spot",false,false)
 	
 
 	
@@ -135,19 +141,15 @@ array<entity> function SpawnEntities(entity player,array<MapEntity> entities)
             prop.SetValueForModelKey( StringToAsset( obj.model_name ) )
             prop.SetOrigin( obj.coordinates )
             prop.SetAngles( obj.angles )
-				// prop.SetOwner( player )
-				// prop.kv.CollideWithOwner = true
+				prop.SetOwner( player )
 			// prop.kv.VisibilityFlags = ENTITY_VISIBLE_TO_OWNER
-			prop.kv.physicsmode = 1
-			prop.kv.spawnflags = 1 
             prop.kv.modelscale = obj.scale
+			prop.kv.solid = SOLID_VPHYSICS
+			// prop.kv.CollisionGroup = TRACE_COLLISION_GROUP_NONE
             prop.kv.fadedist = -1
             prop.kv.renderamt = 255
             prop.kv.rendercolor = "255 255 255"
-            prop.kv.solid = 6
-			// prop.kv.contents = (int(prop.kv.contents) | CONTENTS_PLAYERCLIP)
-			// prop.kv.spawnflags = SF_BLOCK_OWNER_WEAPON
-			prop.Solid()
+            // prop.kv.solid = 6
             ToggleNPCPathsForEntity( prop, false )
             prop.SetAIObstacle( true )
             prop.SetTakeDamageType( DAMAGE_NO )
