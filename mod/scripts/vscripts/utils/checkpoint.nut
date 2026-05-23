@@ -18,12 +18,12 @@ void function initcheckpoints(){
 
 void function spawncheckpointsforplayerwhatcouldgowrong(entity player){
 	thread threadedspawncheckpoints(player)
-	Chat_ServerPrivateMessage(player,"[38;5;189m",false,false)
-	Chat_ServerPrivateMessage(player,"[38;5;219m listroutes[110m/[38;5;219mlr[110m - list routes on current map",false,false)
-	Chat_ServerPrivateMessage(player,"[38;5;219m changeroute[110m/[38;5;219mcr[110m - change your current active route",false,false)
-	Chat_ServerPrivateMessage(player,"[38;5;219m reload[110m - reload the current active map",false,false)
-	Chat_ServerPrivateMessage(player,"[38;5;219m save[110m/[38;5;219msa[110m - save a custom start spot",false,false)
-	Chat_ServerPrivateMessage(player,"[38;5;219m reset[110m/[38;5;219mre[110m - reset your custom start spot",false,false)
+	Chat_ServerPrivateMessage(player,"[38;5;189mParkour got updated! here are some cool things",false,false)
+	Chat_ServerPrivateMessage(player,"[38;5;219mlistroutes[110m/[38;5;219mlr[110m - list routes on current map",false,false)
+	Chat_ServerPrivateMessage(player,"[38;5;219mchangeroute[110m/[38;5;219mcr[110m - change your current active route",false,false)
+	Chat_ServerPrivateMessage(player,"[38;5;219mreload[110m - reload the current active map",false,false)
+	Chat_ServerPrivateMessage(player,"[38;5;219msave[110m/[38;5;219msa[110m - save a custom start spot",false,false)
+	Chat_ServerPrivateMessage(player,"[38;5;219mreset[110m/[38;5;219mre[110m - reset your custom start spot",false,false)
 	
 
 	
