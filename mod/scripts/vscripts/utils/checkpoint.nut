@@ -141,7 +141,7 @@ array<entity> function SpawnEntities(entity player,array<MapEntity> entities)
             prop.SetValueForModelKey( StringToAsset( obj.model_name ) )
             prop.SetOrigin( obj.coordinates )
             prop.SetAngles( obj.angles )
-				prop.SetOwner( player )
+				// prop.SetOwner( player )
 			// prop.kv.VisibilityFlags = ENTITY_VISIBLE_TO_OWNER
             prop.kv.modelscale = obj.scale
 			prop.kv.solid = SOLID_VPHYSICS
