@@ -260,7 +260,7 @@ array <string> function routematchstuff(string playername){ //returns all player
 void function waitabit(entity player, bool waitmore = false){
     WaitFrame()
     if (waitmore){
-        Chat_ServerPrivateMessage(player,"[38;5;203mcannot find route, do `[38;5;219m!cr routename[38;5;203m` below are routes:",false,false)
+        Chat_ServerPrivateMessage(player,"[38;5;203mcannot find route, do `[38;5;219m!cr routename[38;5;203m` below are routes:",false,false)
     }
     table <string,int> routecounts
     foreach (key, value in selectedrouteforplayers){
@@ -288,6 +288,27 @@ bool function listroutes(entity player, array<string> args){
     
     return true
 }
+
+ClServer_MessageStruct function commandwrapper ( ClServer_MessageStruct message ){ 
+    table<string,bool functionref(entity,array<string>) > commands
+    commands.listroutes <- listroutes
+    commands.lr <- listroutes
+    commands.changeroute <- changeroute
+    commands.cr <- changeroute
+    commands.reload <- reloadmap
+    commands.reset <- resetplayerspotwrapper
+    commands.re <- resetplayerspotwrapper
+    commands.save <- savespotwrapper
+    commands.sa <- savespotwrapper
+    if (message.message.len() > 1 && format("%c", message.message.tolower()[0]) == "!" && split(message.message.tolower().slice(1)," ")[0] in commands ){
+        array <string> whydoIhavetomakethisasepratevaribleasotherwiseitcrashes = split(message.message.tolower()," ")
+        whydoIhavetomakethisasepratevaribleasotherwiseitcrashes.remove(0)
+        bool output = commands[split(message.message.tolower().slice(1)," ")[0]](message.player,whydoIhavetomakethisasepratevaribleasotherwiseitcrashes)
+    }
+    return message
+}
+
+
 void function PK_InitializeMapConfiguration()
 {
     RegisterSignal("Iwanttochangearoute")
@@ -296,11 +317,12 @@ void function PK_InitializeMapConfiguration()
     thread loadsavespots()
         PK_credentials.endpoint = GetConVarString("parkour_api_endpoint")
     PK_credentials.secret = GetConVarString("parkour_api_secret")
-    KcommandArr.append(new_KCommandStruct(["listroutes","lr"], false,  listroutes, 0, "list routes"))
-    KcommandArr.append(new_KCommandStruct(["changeroute","cr"], false,  changeroute, 0, "change your route"))
-    KcommandArr.append(new_KCommandStruct(["reload"], false,  reloadmap, 0, "reload the current map"))
-    KcommandArr.append(new_KCommandStruct(["reset","re"], false,  resetplayerspotwrapper, 0, "reset your custom save spot"))
-    KcommandArr.append(new_KCommandStruct(["save","sa"], false,  savespotwrapper, 0, "save a custom save spot"))
+    AddCallback_OnReceivedSayTextMessage ( commandwrapper)
+    // KcommandArr.append(new_KCommandStruct(["listroutes","lr"], false,  listroutes, 0, "list routes"))
+    // KcommandArr.append(new_KCommandStruct(["changeroute","cr"], false,  changeroute, 0, "change your route"))
+    // KcommandArr.append(new_KCommandStruct(["reload"], false,  reloadmap, 0, "reload the current map"))
+    // KcommandArr.append(new_KCommandStruct(["reset","re"], false,  resetplayerspotwrapper, 0, "reset your custom save spot"))
+    // KcommandArr.append(new_KCommandStruct(["save","sa"], false,  savespotwrapper, 0, "save a custom save spot"))
     // Load map configuration either from local file or distant API
     array<string> realmaps
     bool useLocal = GetConVarInt("parkour_use_local_config") == 1
